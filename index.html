@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Training Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="theme-color" content="#3b82f6" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Training Tracker</h1>
+          <p class="brand-sub">Progresja • Dziennik • Skille</p>
+        </div>
+      </div>
+
+      <nav class="nav-tabs" aria-label="Główna nawigacja">
+        <button class="nav-tab active" data-tab="pulpit" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <span>Pulpit</span>
+        </button>
+        <button class="nav-tab" data-tab="dziennik" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+          <span>Dziennik</span>
+        </button>
+        <button class="nav-tab" data-tab="skille" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span>Skille</span>
+        </button>
+      </nav>
+
+      <div class="save-status" title="Wszystkie dane zapisywane są automatycznie w pamięci lokalnej przeglądarki">
+        <span class="status-dot"></span>
+        <span id="saveStatusText">Zapis lokalny (offline)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main class="container">
+
+    <!-- Dashboard tab -->
+    <section id="tab-pulpit" class="tab-panel active">
+      <div class="stack">
+        <!-- Empty state when 0 workouts -->
+        <div id="pulpitEmpty" class="card empty-state hidden">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <h3>Brak zapisanych treningów</h3>
+          <p>Zaimportuj plik CSV z aplikacji Hevy, dodaj trening przez Sync AI w zakładce Dziennik albo załaduj przykładowy zestaw demo.</p>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" type="button" data-tab-jump="dziennik">Przejdź do Dziennika</button>
+            <button class="btn btn-secondary" type="button" id="btnLoadDemo">Załaduj dane demo</button>
+          </div>
+        </div>
+
+        <div id="pulpitContent" class="stack">
+          <!-- Exercise selector and metric toggle -->
+          <div class="card">
+            <div class="pulpit-controls">
+              <div class="combobox" id="exerciseCombobox">
+                <button type="button" class="combobox-trigger" id="comboboxTrigger" aria-expanded="false">
+                  <span class="combobox-label" id="comboboxSelectedLabel">Wybierz ćwiczenie...</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="combobox-menu" id="comboboxMenu">
+                  <div class="combobox-search-wrap">
+                    <input type="text" class="input" id="comboboxSearch" placeholder="Szukaj ćwiczenia..." autocomplete="off" />
+                  </div>
+                  <div class="combobox-list" id="comboboxList"></div>
+                </div>
+              </div>
+
+              <div class="segmented" role="tablist" aria-label="Wybór metryki">
+                <button type="button" class="seg-btn active" data-metric="e1rm">e1RM (kg)</button>
+                <button type="button" class="seg-btn" data-metric="maxWeight">Maks. ciężar (kg)</button>
+                <button type="button" class="seg-btn" data-metric="volume">Objętość (kg)</button>
+                <button type="button" class="seg-btn" data-metric="maxReps">Maks. powtórzenia</button>
+              </div>
+            </div>
+
+            <div class="chips-row" id="popularChips"></div>
+          </div>
+
+          <!-- Weekly summary -->
+          <div id="weeklySummary" class="card" style="display:none;"></div>
+
+          <!-- KPI cards -->
+          <div class="kpi-grid" id="kpiGrid"></div>
+
+          <!-- Progression chart -->
+          <div class="card">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
+              <div>
+                <h2 class="card-title" id="chartTitle">Progresja ćwiczenia</h2>
+                <p class="card-sub" id="chartSubtitle">Wyłącznie realne zapisy z dziennika — najedź lub kliknij punkt, aby zobaczyć szczegóły sesji.</p>
+              </div>
+              <span class="badge badge-blue" id="chartSessionCount">0 sesji</span>
+            </div>
+            <div class="chart-shell" id="chartShell">
+              <svg id="progressSvg" class="chart-svg"></svg>
+              <div id="chartTooltip" class="chart-tooltip"></div>
+            </div>
+          </div>
+
+          <!-- Session history -->
+          <div class="card-flush">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span>Historia sesja po sesji</span>
+                </h3>
+                <p class="card-sub" id="sessionTableSub"></p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Trening</th>
+                    <th>Wszystkie serie</th>
+                    <th class="text-right" id="sessionMetricHeader">Wynik</th>
+                    <th class="text-right">Progres %</th>
+                  </tr>
+                </thead>
+                <tbody id="sessionHistoryTbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- All exercises overview -->
+          <div class="card-flush">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  <span>Przegląd wszystkich ćwiczeń</span>
+                </h3>
+                <p class="card-sub">Kliknij dowolny wiersz, aby wyświetlić wykres i historię ćwiczenia.</p>
+              </div>
+              <div class="search-box">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" class="input" id="overviewSearch" placeholder="Filtruj ćwiczenia..." />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ćwiczenie</th>
+                    <th class="text-center">Sesje</th>
+                    <th>Ostatnia data</th>
+                    <th>Ostatnia najlepsza seria</th>
+                    <th class="text-right">Progres vs poprz.</th>
+                  </tr>
+                </thead>
+                <tbody id="allExercisesTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Journal tab -->
+    <section id="tab-dziennik" class="tab-panel">
+      <div class="stack">
+        <!-- Action toolbar -->
+        <div class="card toolbar-card">
+          <div>
+            <h2 class="card-title" style="font-size:16px;">Dziennik Treningów</h2>
+            <p class="card-sub">Wgrywaj eksport CSV z Hevy, wklejaj treningi z czatu (Sync AI) lub zapisuj kopie zapasowe.</p>
+          </div>
+          <div class="toolbar-actions">
+            <input type="file" id="hevyCsvInput" accept=".csv,text/csv" class="hidden" />
+            <button type="button" class="btn btn-primary" id="btnImportHevy">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Importuj CSV z Hevy</span>
+            </button>
+
+            <button type="button" class="btn btn-secondary" id="btnOpenSyncAi">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              <span>Sync AI (JSON)</span>
+            </button>
+
+            <button type="button" class="btn btn-secondary" id="btnExportBackup">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Eksportuj kopię (.json)</span>
+            </button>
+
+            <input type="file" id="backupJsonInput" accept=".json,application/json" class="hidden" />
+            <button type="button" class="btn btn-secondary" id="btnImportBackup">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              <span>Wczytaj kopię (.json)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter and search -->
+        <div class="filter-bar">
+          <div class="chips-row" style="margin-top:0;" id="journalCategoryChips">
+            <button type="button" class="chip active" data-jcat="ALL">Wszystkie</button>
+            <button type="button" class="chip" data-jcat="PUSH">PUSH</button>
+            <button type="button" class="chip" data-jcat="PULL">PULL</button>
+            <button type="button" class="chip" data-jcat="LEGS">LEGS</button>
+            <button type="button" class="chip" data-jcat="OTHER">Inne</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span id="journalCountLabel" style="font-size:12px;color:var(--text-muted);font-weight:600;">0 treningów</span>
+            <div class="search-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="input" id="journalSearch" placeholder="Szukaj treningu lub ćwiczenia..." />
+            </div>
+          </div>
+        </div>
+
+        <!-- Workout cards -->
+        <div class="workout-list" id="workoutList"></div>
+      </div>
+    </section>
+
+    <!-- Skills tab -->
+    <section id="tab-skille" class="tab-panel">
+      <div class="stack">
+        <div class="skills-header">
+          <div>
+            <h2 class="card-title" style="font-size:17px;">Skille — Checkpointy</h2>
+            <p class="card-sub">Odznaczaj zaliczone etapy kalisteniczne i siłowe. Data zapisuje się automatycznie i można ją edytować.</p>
+          </div>
+          <span class="badge badge-blue" id="skillsTotalBadge" style="padding:6px 12px;font-size:12px;">0 / 0 zaliczone</span>
+        </div>
+
+        <div class="skills-grid" id="skillsGrid"></div>
+
+        <form class="new-cat-form" id="addCategoryForm">
+          <input type="color" class="color-pick" name="color" value="#6366f1" title="Kolor kategorii" />
+          <input type="text" class="input" name="title" placeholder="Nowa kategoria skilli..." required />
+          <button type="submit" class="btn btn-secondary btn-sm">+ Dodaj kategorię</button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Mobile navigation -->
+  <nav class="mobile-nav" aria-label="Nawigacja mobilna">
+    <button class="mobile-nav-btn active" data-tab="pulpit" type="button">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      <span>Pulpit</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="dziennik" type="button">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+      <span>Dziennik</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="skille" type="button">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <span>Skille</span>
+    </button>
+  </nav>
+
+  <!-- Hevy CSV import modal -->
+  <div id="csvModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-box sm">
+      <div class="modal-head">
+        <h3 class="modal-title">Import CSV z Hevy</h3>
+        <button type="button" class="modal-close" data-close-modal="csvModal" aria-label="Zamknij">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="csvSummaryText" style="margin:0;font-size:13px;color:var(--text-secondary);"></p>
+        <button type="button" class="option-card" id="csvMergeBtn">
+          <div class="option-card-title">Dołącz nowe (pomiń duplikaty)</div>
+          <div class="option-card-desc">Zachowuje dotychczasowe wpisy i dopisuje wyłącznie brakujące treningi z pliku.</div>
+        </button>
+        <button type="button" class="option-card" id="csvReplaceBtn">
+          <div class="option-card-title" style="color:#60a5fa;">Zastąp całą historię</div>
+          <div class="option-card-desc">Podmienia obecne treningi pełnym eksportem z Hevy (idealne przy pierwszym pełnym imporcie). Skille zostają bez zmian.</div>
+        </button>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-secondary btn-sm" data-close-modal="csvModal">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sync AI JSON modal -->
+  <div id="syncAiModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3 class="modal-title">Sync AI — Dodaj trening z JSON</h3>
+        <button type="button" class="modal-close" data-close-modal="syncAiModal" aria-label="Zamknij">✕</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:11.5px;font-weight:600;color:var(--primary-hover);text-transform:uppercase;letter-spacing:0.04em;">Format JSON (pojedynczy obiekt lub tablica)</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnFillAiExample" style="padding:3px 8px;font-size:11px;">Wstaw przykład</button>
+          </div>
+          <pre class="code-hint">{
+  "date": "2026-11-19",
+  "startTime": "18:00",
+  "title": "PUSH",
+  "exercises": [
+    {
+      "name": "Wyciskanie leżąc (sztanga)",
+      "sets": [
+        { "w": 75, "r": 5 },
+        { "w": 75, "r": 5 }
+      ]
+    }
+  ]
+}</pre>
+        </div>
+        <div>
+          <label for="aiJsonInput" style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">Wklej wygenerowany JSON:</label>
+          <textarea id="aiJsonInput" class="textarea" rows="8" placeholder="Wklej kod JSON z czatu..."></textarea>
+          <p id="aiJsonError" class="error-msg" style="margin-top:6px;"></p>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-secondary" data-close-modal="syncAiModal">Anuluj</button>
+        <button type="button" class="btn btn-primary" id="btnSubmitAiJson">Dodaj trening</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation modal -->
+  <div id="confirmModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-box sm">
+      <div class="modal-head">
+        <h3 class="modal-title" id="confirmTitle">Potwierdź operację</h3>
+        <button type="button" class="modal-close" data-close-modal="confirmModal" aria-label="Zamknij">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage" style="margin:0;font-size:13px;color:var(--text-secondary);"></p>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-secondary btn-sm" id="confirmCancelBtn">Anuluj</button>
+        <button type="button" class="btn btn-danger btn-sm" id="confirmOkBtn">Potwierdź</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit workout modal -->
+  <div id="editModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-box" style="max-width:620px;">
+      <div class="modal-head">
+        <h3 class="modal-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edytuj trening
+        </h3>
+        <button type="button" class="modal-close" data-close-modal="editModal" aria-label="Zamknij">✕</button>
+      </div>
+      <div class="modal-body" id="editModalBody" style="max-height:60vh;"></div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-secondary" data-close-modal="editModal">Anuluj</button>
+        <button type="button" class="btn btn-primary" id="btnSaveEdit">Zapisz zmiany</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
